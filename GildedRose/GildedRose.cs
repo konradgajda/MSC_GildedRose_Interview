@@ -1,88 +1,40 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using GildedRoseKata.enums;
+using GildedRoseKata.helpers;
+using GildedRoseKata.itemUpdaters;
+using GildedRoseKata.models;
+using GildedRoseKata.interfaces;
 
 namespace GildedRoseKata;
 
-public class GildedRose
+public class GildedRose(IList<Item> items, Dictionary<ItemName, IItemUpdater> itemUpdaters)
 {
-    IList<Item> Items;
-
-    public GildedRose(IList<Item> Items)
-    {
-        this.Items = Items;
-    }
+    private readonly IList<Item> _items = items ?? throw new ArgumentNullException(nameof(items));
+    private readonly Dictionary<ItemName, IItemUpdater> _itemUpdaters = itemUpdaters ?? throw new ArgumentNullException(nameof(itemUpdaters));
+    private readonly DefaultItemUpdater _defaultItemUpdater = new DefaultItemUpdater();
 
     public void UpdateQuality()
     {
-        for (var i = 0; i < Items.Count; i++)
+        foreach (var item in _items)
         {
-            if (Items[i].Name != "Aged Brie" && Items[i].Name != "Backstage passes to a TAFKAL80ETC concert")
+            try
             {
-                if (Items[i].Quality > 0)
+                var itemType = ItemNameHelper.GetItemName(item.Name);
+
+                if (itemType.HasValue && _itemUpdaters.TryGetValue(itemType.Value, out var updater))
                 {
-                    if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
-                    {
-                        Items[i].Quality = Items[i].Quality - 1;
-                    }
-                }
-            }
-            else
-            {
-                if (Items[i].Quality < 50)
-                {
-                    Items[i].Quality = Items[i].Quality + 1;
-
-                    if (Items[i].Name == "Backstage passes to a TAFKAL80ETC concert")
-                    {
-                        if (Items[i].SellIn < 11)
-                        {
-                            if (Items[i].Quality < 50)
-                            {
-                                Items[i].Quality = Items[i].Quality + 1;
-                            }
-                        }
-
-                        if (Items[i].SellIn < 6)
-                        {
-                            if (Items[i].Quality < 50)
-                            {
-                                Items[i].Quality = Items[i].Quality + 1;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
-            {
-                Items[i].SellIn = Items[i].SellIn - 1;
-            }
-
-            if (Items[i].SellIn < 0)
-            {
-                if (Items[i].Name != "Aged Brie")
-                {
-                    if (Items[i].Name != "Backstage passes to a TAFKAL80ETC concert")
-                    {
-                        if (Items[i].Quality > 0)
-                        {
-                            if (Items[i].Name != "Sulfuras, Hand of Ragnaros")
-                            {
-                                Items[i].Quality = Items[i].Quality - 1;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Items[i].Quality = Items[i].Quality - Items[i].Quality;
-                    }
+                    updater.Update(item);
                 }
                 else
                 {
-                    if (Items[i].Quality < 50)
-                    {
-                        Items[i].Quality = Items[i].Quality + 1;
-                    }
+                    _defaultItemUpdater.Update(item);
                 }
+            }
+            catch (Exception ex)
+            {
+                // Log detailed information for debugging
+                Console.WriteLine($"Error updating item '{item.Name}' (SellIn: {item.SellIn}, Quality: {item.Quality}). Exception: {ex}");
             }
         }
     }
