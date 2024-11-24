@@ -1,5 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using GildedRoseKata.enums;
+using GildedRoseKata.interfaces;
+using GildedRoseKata.itemUpdaters;
+using GildedRoseKata.models;
 
 namespace GildedRoseKata;
 
@@ -38,7 +42,18 @@ public class Program
             new Item {Name = "Conjured Mana Cake", SellIn = 3, Quality = 6}
         };
 
-        var app = new GildedRose(items);
+        // to introduce the concept of polymorphism, we will use a dictionary of item updaters
+        // to add new item types, we just need to add a new item updater and create corresponding class item
+
+        var itemUpdater = new Dictionary<ItemName, IItemUpdater>
+        {
+            { ItemName.AgedBrie, new AgedBrieUpdater() },
+            { ItemName.BackstagePasses, new BackstagePassUpdater() },
+            { ItemName.Sulfuras, new SulfurasUpdater() },
+            { ItemName.Conjured, new ConjuredUpdater() }
+        };
+
+        var app = new GildedRose(items, itemUpdater);
 
         int days = 2;
         if (args.Length > 0)
